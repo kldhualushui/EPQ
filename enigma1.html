@@ -1,0 +1,978 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Enigma Machine Simulator</title>
+  <style>
+    /* =================================
+       GLOBAL DESIGN
+    ================================= */
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      margin: 0;
+      background: #111C2E;
+      color: #FFFFFF;
+      font-family: Arial, sans-serif;
+      overflow-x: hidden;
+    }
+
+    button, input {
+      font-family: inherit;
+      cursor: pointer;
+      touch-action: manipulation;
+    }
+
+    .app {
+      width: 100%;
+      min-height: 100vh;
+      min-height: 100dvh;
+    }
+
+    .page {
+      display: none;
+      min-height: 100vh;
+      min-height: 100dvh;
+      padding: 25px;
+    }
+
+    .page.active {
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* =================================
+       HOME PAGE (Compact & Horizontal)
+    ================================= */
+    #homePage {
+      justify-content: center;
+      align-items: center;
+      background: radial-gradient(circle at center, #263D5C, #111C2E 75%);
+    }
+
+    .home-header {
+      text-align: center;
+      margin-bottom: 30px; /* 降低高度 */
+    }
+
+    .machine-icon {
+      font-size: 40px;
+      color: #E6B85C;
+      margin-bottom: 10px;
+    }
+
+    .home-header h1 {
+      font-size: clamp(28px, 5vw, 40px);
+      letter-spacing: 4px;
+      margin: 0;
+    }
+
+    .home-header p {
+      color: #9BAEC5;
+      letter-spacing: 2px;
+      font-size: 12px;
+      margin-top: 10px;
+    }
+
+    /* 左右排列 */
+    .home-buttons {
+      width: min(800px, 100%);
+      display: flex;
+      flex-direction: row; 
+      gap: 30px;
+    }
+
+    .menu-card {
+      flex: 1;
+      min-height: 160px;
+      border: 1px solid #526987;
+      border-radius: 18px;
+      background: #263D5D;
+      color: white;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      font-size: 18px;
+      font-weight: bold;
+      transition: 0.2s;
+    }
+
+    .menu-card:active {
+      background: #3C587C;
+      transform: scale(0.97);
+    }
+
+    .menu-icon {
+      font-size: 40px;
+      color: #E6B85C;
+    }
+
+    .menu-subtitle {
+      font-size: 11px;
+      color: #B2C2D4;
+      letter-spacing: 1px;
+    }
+
+    footer {
+      color: #778CA7;
+      font-size: 10px;
+      letter-spacing: 2px;
+      margin-top: 40px;
+    }
+
+    /* =================================
+       TOP NAVIGATION
+    ================================= */
+    .top-bar {
+      height: 60px;
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      border-bottom: 1px solid #35465F;
+      flex-shrink: 0;
+      margin-bottom: 15px;
+    }
+
+    .top-bar h2 {
+      font-size: clamp(15px, 3vw, 20px);
+      letter-spacing: 1px;
+      margin: 0;
+    }
+
+    .back-button {
+      background: #344761;
+      border: none;
+      border-radius: 8px;
+      padding: 10px 16px;
+      color: white;
+      font-weight: bold;
+      white-space: nowrap;
+    }
+
+    /* =================================
+       ENCRYPTION PAGE
+    ================================= */
+    .cipher-container {
+      width: min(850px, 100%);
+      margin: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+      flex: 1;
+      justify-content: center;
+    }
+
+    .text-section {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      flex: 1;
+      min-height: 110px;
+    }
+
+    .text-section label {
+      font-size: 13px;
+      font-weight: bold;
+      letter-spacing: 2px;
+      color: #E6B85C;
+    }
+
+    textarea {
+      width: 100%;
+      flex: 1;
+      min-height: 100px;
+      resize: none;
+      border: 1px solid #526987;
+      border-radius: 10px;
+      background: #23344D;
+      color: white;
+      padding: 15px;
+      font-size: 18px;
+      line-height: 1.5;
+      outline: none;
+    }
+
+    textarea:focus {
+      border-color: #E6B85C;
+    }
+
+    #outputText {
+      color: #83D6AE;
+    }
+
+    .action-buttons {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .action-button {
+      border: none;
+      border-radius: 8px;
+      padding: 14px 22px;
+      font-size: 13px;
+      font-weight: bold;
+      color: white;
+    }
+
+    .encrypt-button, .decrypt-button { background: #397D65; }
+    .clear-button { background: #A34B4B; }
+
+    .action-button:active, .reset-button:active, .back-button:active, .next-button:active {
+      opacity: 0.7;
+    }
+
+    /* =================================
+       PLUGBOARD PAGE
+    ================================= */
+    .plugboard-container {
+      width: min(850px, 100%);
+      margin: auto;
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+      position: relative; /* 为了右下角按钮定位 */
+    }
+
+    .plugboard-info {
+      text-align: center;
+      flex-shrink: 0;
+      margin-bottom: 20px;
+    }
+
+    #plugStatus {
+      color: #E6B85C;
+      font-size: 16px;
+      font-weight: bold;
+      letter-spacing: 1px;
+      margin: 0 0 5px 0;
+    }
+
+    .plug-instruction {
+      color: #9BAEC5;
+      font-size: 13px;
+      margin: 0;
+    }
+
+    .plugboard-area {
+      position: relative;
+      width: 100%;
+      margin: auto;
+      flex: 1;
+      min-height: 250px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-around;
+      padding: 20px 0;
+    }
+
+    #connectionLines {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      overflow: visible;
+      z-index: 0;
+    }
+
+    .letter-row {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: clamp(2px, 1.5vw, 15px);
+      width: 100%;
+      position: relative;
+      z-index: 1;
+    }
+
+    .letter-button {
+      width: clamp(25px, 7vw, 55px);
+      height: clamp(25px, 7vw, 55px);
+      flex: 0 1 55px;
+      border-radius: 50%;
+      border: 2px solid #B8C6D7;
+      background: #E6EAF0;
+      color: #18243A;
+      font-size: clamp(12px, 3vw, 20px);
+      font-weight: bold;
+      padding: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: 0.15s;
+      position: relative;
+    }
+
+    .letter-button.selected {
+      background: #F1C75B;
+      border-color: #FFFFFF;
+      box-shadow: 0 0 15px #F1C75B;
+      transform: scale(1.1);
+    }
+
+    .letter-button.connected {
+      background: #397D65;
+      border-color: #83D6AE;
+      color: white;
+    }
+
+    .plugboard-bottom {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-top: 20px;
+      flex-shrink: 0;
+    }
+
+    #connectionList {
+      color: #E6B85C;
+      font-size: 14px;
+      max-width: 60%;
+    }
+
+    .reset-button {
+      border: none;
+      background: #A34B4B;
+      color: white;
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: bold;
+    }
+
+    /* 跳转按钮 */
+    .next-button {
+      border: none;
+      background: #E6B85C;
+      color: #18243A;
+      padding: 15px 25px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: bold;
+      position: absolute;
+      bottom: 0;
+      right: 0;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+    }
+
+    #connectionLines line {
+      stroke: #E6B85C;
+      stroke-width: 4;
+      stroke-linecap: round;
+      opacity: 0.8;
+    }
+
+    /* =================================
+       ROTOR SETTING PAGE
+    ================================= */
+    .rotor-container {
+      width: min(800px, 100%);
+      margin: auto;
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+      justify-content: center;
+    }
+
+    .rotor-panel {
+      background: #18283f;
+      border-radius: 15px;
+      padding: 40px;
+      border: 1px solid #2b415c;
+      display: flex;
+      flex-direction: column;
+      gap: 50px;
+    }
+
+    .setting-section {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .setting-title {
+      font-size: 16px;
+      color: #E6B85C;
+      letter-spacing: 2px;
+      border-bottom: 1px dashed #526987;
+      padding-bottom: 10px;
+      margin: 0;
+      text-align: center;
+    }
+
+    /* Rotor Order Drag & Drop */
+    .rotor-pool {
+      display: flex;
+      justify-content: center;
+      gap: 20px;
+      min-height: 70px;
+      padding: 12px;
+      background: #111c2e;
+      border-radius: 10px;
+      border: 1px dashed #35465F;
+    }
+
+    .rotor-element {
+      width: 55px;
+      height: 55px;
+      background: #344761;
+      border: 2px solid #526987;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      font-size: 20px;
+      color: #fff;
+      cursor: grab;
+      user-select: none;
+      transition: 0.2s;
+    }
+
+    .rotor-element:active { cursor: grabbing; }
+    .rotor-element.dragging { opacity: 0.5; transform: scale(0.9); }
+
+    .rotor-slots {
+      display: flex;
+      justify-content: space-around;
+      gap: 20px;
+      margin-top: 10px;
+    }
+
+    .slot-wrapper {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .rotor-slot {
+      width: 75px;
+      height: 75px;
+      border: 2px dashed #526987;
+      border-radius: 10px;
+      background: #23344D;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: 0.2s;
+    }
+
+    .rotor-slot.drag-over {
+      background: #397D65;
+      border-color: #83D6AE;
+      transform: scale(1.05);
+    }
+
+    .slot-label {
+      font-size: 13px;
+      color: #9BAEC5;
+      letter-spacing: 1px;
+      text-align: center;
+    }
+
+    /* Rotor Setting Inputs (验证码模式) */
+    .setting-inputs {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 20px;
+    }
+
+    .letter-input {
+      width: 75px;
+      height: 75px;
+      background: #23344D;
+      border: 2px solid #526987;
+      border-radius: 10px;
+      color: #fff;
+      font-size: 32px;
+      font-weight: bold;
+      text-align: center;
+      text-transform: uppercase;
+      outline: none;
+      transition: 0.2s;
+    }
+
+    .letter-input:focus {
+      border-color: #E6B85C;
+      box-shadow: 0 0 15px rgba(230, 184, 92, 0.4);
+    }
+
+    .input-hint {
+      font-size: 14px;
+      color: #9BAEC5;
+      letter-spacing: 1px;
+      margin-left: 15px;
+    }
+
+    /* =================================
+       RESPONSIVENESS (Mobile Stack)
+    ================================= */
+    @media (max-width: 800px) {
+      .home-buttons { flex-direction: column; }
+      
+      .plugboard-bottom {
+        flex-direction: column;
+        gap: 20px;
+      }
+      #connectionList { max-width: 100%; text-align: center; }
+      
+      .next-button {
+        position: relative;
+        width: 100%;
+        margin-top: 10px;
+      }
+
+      .letter-button { 
+        width: clamp(22px, 6vw, 40px); 
+        height: clamp(22px, 6vw, 40px); 
+      }
+      
+      .rotor-panel { padding: 20px; gap: 30px; }
+      .rotor-slot, .letter-input { width: 60px; height: 60px; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="app">
+
+    <!-- HOME PAGE -->
+    <section id="homePage" class="page active">
+      <header class="home-header">
+        <div class="machine-icon">⚙</div>
+        <h1>ENIGMA MACHINE</h1>
+        <p>GERMAN ENCRYPTION SIMULATOR</p>
+      </header>
+
+      <div class="home-buttons">
+        <button class="menu-card" onclick="showPage('cipherPage')">
+          <span class="menu-icon">⌨</span>
+          <span>ENCRYPTION</span>
+          <span class="menu-subtitle">ENCRYPT / DECRYPT</span>
+        </button>
+
+        <button class="menu-card" onclick="showPage('plugboardPage')">
+          <span class="menu-icon">⟷</span>
+          <span>KEY INSERT</span>
+          <span class="menu-subtitle">PLUGBOARD</span>
+        </button>
+      </div>
+
+      <footer>ENIGMA MACHINE PROJECT · V1.0</footer>
+    </section>
+
+    <!-- ENCRYPTION PAGE -->
+    <section id="cipherPage" class="page">
+      <div class="top-bar">
+        <button class="back-button" onclick="showPage('homePage')">← BACK</button>
+        <h2>ENCRYPTION / DECRYPTION</h2>
+      </div>
+
+      <div class="cipher-container">
+        <div class="text-section">
+          <label>INPUT TEXT</label>
+          <textarea id="inputText" placeholder="Enter your message here..." spellcheck="false"></textarea>
+        </div>
+
+        <div class="action-buttons">
+          <button class="action-button encrypt-button" onclick="encryptText()">ENCRYPT →</button>
+          <button class="action-button decrypt-button" onclick="decryptText()">← DECRYPT</button>
+          <button class="action-button clear-button" onclick="clearText()">CLEAR</button>
+        </div>
+
+        <div class="text-section output-section">
+          <label>OUTPUT TEXT</label>
+          <textarea id="outputText" placeholder="Your result will appear here..." readonly spellcheck="false"></textarea>
+        </div>
+      </div>
+    </section>
+
+    <!-- PLUGBOARD PAGE -->
+    <section id="plugboardPage" class="page">
+      <div class="top-bar">
+        <button class="back-button" onclick="showPage('homePage')">← BACK</button>
+        <h2>PLUGBOARD</h2>
+      </div>
+
+      <div class="plugboard-container">
+        <div class="plugboard-info">
+          <p id="plugStatus">SELECT YOUR FIRST LETTER</p>
+          <p class="plug-instruction">Select two different letters to connect them.</p>
+        </div>
+
+        <div class="plugboard-area">
+          <svg id="connectionLines"></svg>
+          <div class="letter-row" id="row1"></div>
+          <div class="letter-row" id="row2"></div>
+          <div class="letter-row" id="row3"></div>
+        </div>
+
+        <div class="plugboard-bottom">
+          <div id="connectionList">NO CONNECTIONS</div>
+          <button class="reset-button" onclick="clearPlugboard()">CLEAR ALL</button>
+          
+          <!-- 前往转子设置按钮 -->
+          <button class="next-button" onclick="showPage('rotorPage')">
+            NEXT: ROTOR SETTING →
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ROTOR SETTING PAGE -->
+    <section id="rotorPage" class="page">
+      <div class="top-bar">
+        <button class="back-button" onclick="showPage('plugboardPage')">← BACK</button>
+        <h2>ROTOR SETTING</h2>
+      </div>
+
+      <div class="rotor-container">
+        <div class="rotor-panel">
+          
+          <!-- Rotor Order Section -->
+          <div class="setting-section">
+            <h3 class="setting-title">ROTOR ORDER</h3>
+            
+            <div class="rotor-pool" id="rotorPool">
+              <div class="rotor-element" draggable="true" data-rotor="I">I</div>
+              <div class="rotor-element" draggable="true" data-rotor="II">II</div>
+              <div class="rotor-element" draggable="true" data-rotor="III">III</div>
+              <div class="rotor-element" draggable="true" data-rotor="IV">IV</div>
+              <div class="rotor-element" draggable="true" data-rotor="V">V</div>
+            </div>
+
+            <div class="rotor-slots">
+              <div class="slot-wrapper">
+                <div class="rotor-slot" data-slot="0"></div>
+                <span class="slot-label">SLOW ROTOR</span>
+              </div>
+              <div class="slot-wrapper">
+                <div class="rotor-slot" data-slot="1"></div>
+                <span class="slot-label">MIDDLE</span>
+              </div>
+              <div class="slot-wrapper">
+                <div class="rotor-slot" data-slot="2"></div>
+                <span class="slot-label">FAST ROTOR</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Rotor Setting Section -->
+          <div class="setting-section">
+            <h3 class="setting-title">ROTOR SETTING</h3>
+            <div class="setting-inputs">
+              <input type="text" class="letter-input" id="rotorIn1" maxlength="1" placeholder="-">
+              <input type="text" class="letter-input" id="rotorIn2" maxlength="1" placeholder="-">
+              <input type="text" class="letter-input" id="rotorIn3" maxlength="1" placeholder="-">
+              <span class="input-hint">(a ~ z)</span>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+  </div>
+
+  <script>
+    /* =================================
+       PAGE NAVIGATION
+    ================================= */
+    function showPage(pageId) {
+      document.querySelectorAll(".page").forEach(page => {
+        page.classList.remove("active");
+      });
+      document.getElementById(pageId).classList.add("active");
+
+      // 延迟重绘连线
+      if (pageId === "plugboardPage") {
+        setTimeout(() => {
+          requestAnimationFrame(drawConnections);
+        }, 100);
+      }
+    }
+
+    /* =================================
+       ENCRYPTION / DECRYPTION
+    ================================= */
+    function shiftText(text, shift) {
+      return text.replace(/[a-zA-Z]/g, letter => {
+        const base = letter === letter.toUpperCase() ? 65 : 97;
+        return String.fromCharCode(
+          ((letter.charCodeAt(0) - base + shift + 26) % 26) + base
+        );
+      });
+    }
+
+    function encryptText() {
+      const input = document.getElementById("inputText").value;
+      const output = shiftText(input, 1);
+      document.getElementById("outputText").value = output;
+    }
+
+    function decryptText() {
+      const input = document.getElementById("inputText").value;
+      const output = shiftText(input, -1);
+      document.getElementById("outputText").value = output;
+    }
+
+    function clearText() {
+      document.getElementById("inputText").value = "";
+      document.getElementById("outputText").value = "";
+    }
+
+    /* =================================
+       PLUGBOARD LOGIC
+    ================================= */
+    let plugboardPairs = {};
+    let selectedLetter = null;
+    const alphabetRows = ["ABCDEFGHIJ", "KLMNOPQRS", "TUVWXYZ"];
+
+    function createPlugboard() {
+      alphabetRows.forEach((letters, rowIndex) => {
+        const row = document.getElementById("row" + (rowIndex + 1));
+        row.innerHTML = "";
+        for (const letter of letters) {
+          const button = document.createElement("button");
+          button.className = "letter-button";
+          button.textContent = letter;
+          button.dataset.letter = letter;
+          button.addEventListener("click", () => selectLetter(letter));
+          row.appendChild(button);
+        }
+      });
+      updatePlugboard();
+    }
+
+    function selectLetter(letter) {
+      const status = document.getElementById("plugStatus");
+
+      if (selectedLetter === null) {
+        if (plugboardPairs[letter]) {
+          status.textContent = letter + " IS ALREADY CONNECTED";
+          return;
+        }
+        selectedLetter = letter;
+        status.textContent = "SELECTED " + letter + " — CHOOSE ANOTHER LETTER";
+        updatePlugboard();
+        return;
+      }
+
+      if (selectedLetter === letter) {
+        selectedLetter = null;
+        status.textContent = "SELECTION CANCELLED";
+        updatePlugboard();
+        return;
+      }
+
+      if (plugboardPairs[letter]) {
+        status.textContent = letter + " IS ALREADY CONNECTED";
+        return;
+      }
+
+      const first = selectedLetter;
+      plugboardPairs[first] = letter;
+      plugboardPairs[letter] = first;
+      selectedLetter = null;
+      status.textContent = first + " ↔ " + letter + " CONNECTED";
+      updatePlugboard();
+    }
+
+    function updatePlugboard() {
+      document.querySelectorAll(".letter-button").forEach(button => {
+        const letter = button.dataset.letter;
+        button.classList.remove("selected", "connected");
+        if (letter === selectedLetter) {
+          button.classList.add("selected");
+        } else if (plugboardPairs[letter]) {
+          button.classList.add("connected");
+        }
+      });
+      updateConnectionList();
+      requestAnimationFrame(drawConnections);
+    }
+
+    function drawConnections() {
+      const svg = document.getElementById("connectionLines");
+      const area = document.querySelector(".plugboard-area");
+      if (!svg || !area || area.offsetParent === null) return;
+
+      const areaRect = area.getBoundingClientRect();
+      svg.innerHTML = "";
+      const drawnPairs = new Set();
+
+      for (const [letter, partner] of Object.entries(plugboardPairs)) {
+        const pair = [letter, partner].sort().join("");
+        if (drawnPairs.has(pair)) continue;
+        drawnPairs.add(pair);
+
+        const buttonA = document.querySelector(`[data-letter="${letter}"]`);
+        const buttonB = document.querySelector(`[data-letter="${partner}"]`);
+        if (!buttonA || !buttonB) continue;
+
+        const rectA = buttonA.getBoundingClientRect();
+        const rectB = buttonB.getBoundingClientRect();
+
+        const x1 = rectA.left + rectA.width / 2 - areaRect.left;
+        const y1 = rectA.top + rectA.height / 2 - areaRect.top;
+        const x2 = rectB.left + rectB.width / 2 - areaRect.left;
+        const y2 = rectB.top + rectB.height / 2 - areaRect.top;
+
+        const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+        line.setAttribute("x1", x1);
+        line.setAttribute("y1", y1);
+        line.setAttribute("x2", x2);
+        line.setAttribute("y2", y2);
+        svg.appendChild(line);
+      }
+    }
+
+    function updateConnectionList() {
+      const display = document.getElementById("connectionList");
+      const connections = [];
+      const drawnPairs = new Set();
+
+      for (const [letter, partner] of Object.entries(plugboardPairs)) {
+        const pair = [letter, partner].sort().join("");
+        if (!drawnPairs.has(pair)) {
+          connections.push(pair);
+          drawnPairs.add(pair);
+        }
+      }
+      display.textContent = connections.length
+        ? "CONNECTIONS: " + connections.join("  |  ")
+        : "NO CONNECTIONS";
+    }
+
+    function clearPlugboard() {
+      plugboardPairs = {};
+      selectedLetter = null;
+      document.getElementById("plugStatus").textContent = "ALL CONNECTIONS CLEARED";
+      updatePlugboard();
+    }
+
+    /* =================================
+       KEY SETTING (DRAG & DROP)
+    ================================= */
+    const rotors = document.querySelectorAll('.rotor-element');
+    const slots = document.querySelectorAll('.rotor-slot');
+    const pool = document.getElementById('rotorPool');
+    let draggedRotor = null;
+
+    rotors.forEach(rotor => {
+      rotor.addEventListener('dragstart', (e) => {
+        draggedRotor = rotor;
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', rotor.dataset.rotor); 
+        setTimeout(() => rotor.classList.add('dragging'), 0);
+      });
+
+      rotor.addEventListener('dragend', () => {
+        rotor.classList.remove('dragging');
+        draggedRotor = null;
+      });
+    });
+
+    const dropZones = [...slots, pool];
+
+    dropZones.forEach(zone => {
+      zone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        if (zone.classList.contains('rotor-slot')) {
+          zone.classList.add('drag-over');
+        }
+      });
+
+      zone.addEventListener('dragleave', () => {
+        if (zone.classList.contains('rotor-slot')) {
+          zone.classList.remove('drag-over');
+        }
+      });
+
+      zone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        if (zone.classList.contains('rotor-slot')) {
+          zone.classList.remove('drag-over');
+        }
+        if (!draggedRotor) return;
+
+        if (zone.classList.contains('rotor-slot')) {
+          const existingRotor = zone.querySelector('.rotor-element');
+          if (existingRotor && existingRotor !== draggedRotor) {
+            pool.appendChild(existingRotor);
+          }
+          zone.appendChild(draggedRotor);
+        } else if (zone.id === 'rotorPool') {
+          pool.appendChild(draggedRotor);
+        }
+      });
+    });
+
+    /* =================================
+       ROTOR SETTING INPUTS (验证码式输入)
+    ================================= */
+    const inputs = [
+      document.getElementById('rotorIn1'),
+      document.getElementById('rotorIn2'),
+      document.getElementById('rotorIn3')
+    ];
+
+    inputs.forEach((input, index) => {
+      // 处理输入
+      input.addEventListener('input', (e) => {
+        // 转为大写，并替换掉非字母字符
+        let val = e.target.value.toUpperCase().replace(/[^A-Z]/g, '');
+        
+        // 如果输入了多个字符（例如手机输入法联想），只取最后一个
+        if (val.length > 1) {
+          val = val.slice(-1);
+        }
+
+        e.target.value = val;
+
+        // 如果当前格有值，且不是最后一个格子，自动跳到下一格
+        if (val && index < inputs.length - 1) {
+          inputs[index + 1].focus();
+        }
+      });
+
+      // 处理删除（跨空格回退）
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'Backspace') {
+          // 如果当前格子是空的，且不是第一个格子，回退到上一格并删除
+          if (!e.target.value && index > 0) {
+            e.preventDefault(); // 阻止默认删除行为
+            inputs[index - 1].focus();
+            inputs[index - 1].value = ''; // 把前一个格子清空
+          }
+        }
+      });
+
+      // 点击时自动全选内容，方便直接覆盖
+      input.addEventListener('click', (e) => {
+        e.target.select();
+      });
+    });
+
+    /* =================================
+       INITIALIZATION
+    ================================= */
+    createPlugboard();
+
+    window.addEventListener("resize", () => {
+      requestAnimationFrame(drawConnections);
+    });
+  </script>
+</body>
+</html>
