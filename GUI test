@@ -1,662 +1,931 @@
-import tkinter as tk
-from tkinter import messagebox
-
-# ==========================================
-# ENIGMA MACHINE - MAIN APPLICATION
-# ==========================================
-
-class EnigmaMachine:
-
-    def __init__(self, root):
-
-        self.root = root
-
-        self.root.title("Enigma Machine")
-        self.root.geometry("800x480")
-        self.root.configure(bg="#18243A")
-
-        # Full screen
-        self.root.attributes("-fullscreen", True)
-
-        # Keyboard shortcuts
-        self.root.bind("<Escape>", self.exit_fullscreen)
-        self.root.bind("<F11>", self.toggle_fullscreen)
-
-        # Plugboard data
-        self.plugboard_pairs = {}
-        self.selected_letter = None
-
-        # Show home page
-        self.show_home()
-
-
-    # ======================================
-    # GENERAL PAGE FUNCTIONS
-    # ======================================
-
-    def clear_page(self):
-
-        for widget in self.root.winfo_children():
-            widget.destroy()
-
-
-    def create_header(self, title):
-
-        header = tk.Frame(
-            self.root,
-            bg="#18243A",
-            height=60
-        )
-
-        header.pack(fill="x", padx=20, pady=10)
-        header.pack_propagate(False)
-
-        back_button = tk.Button(
-            header,
-            text="← BACK",
-            font=("Arial", 13, "bold"),
-            bg="#344761",
-            fg="white",
-            activebackground="#506987",
-            activeforeground="white",
-            relief="flat",
-            command=self.show_home
-        )
-
-        back_button.pack(side="left", padx=5)
-
-        title_label = tk.Label(
-            header,
-            text=title,
-            font=("Arial", 22, "bold"),
-            fg="white",
-            bg="#18243A"
-        )
-
-        title_label.pack(side="left", padx=25)
-
-        return header
-
-
-    def exit_fullscreen(self, event=None):
-
-        self.root.attributes("-fullscreen", False)
-
-
-    def toggle_fullscreen(self, event=None):
-
-        current = self.root.attributes("-fullscreen")
-
-        self.root.attributes("-fullscreen", not current)
-
-
-    # ======================================
-    # HOME PAGE
-    # ======================================
-
-    def show_home(self):
-
-        self.clear_page()
-
-        title = tk.Label(
-            self.root,
-            text="ENIGMA MACHINE",
-            font=("Arial", 34, "bold"),
-            fg="white",
-            bg="#18243A"
-        )
-
-        title.pack(pady=45)
-
-        subtitle = tk.Label(
-            self.root,
-            text="SELECT A FUNCTION",
-            font=("Arial", 14),
-            fg="#AAB8CC",
-            bg="#18243A"
-        )
-
-        subtitle.pack(pady=5)
-
-        button_frame = tk.Frame(
-            self.root,
-            bg="#18243A"
-        )
-
-        button_frame.pack(
-            expand=True,
-            fill="both",
-            padx=35,
-            pady=35
-        )
-
-        # Encryption button
-
-        encryption_button = tk.Button(
-            button_frame,
-            text="ENCRYPTION /\nDECRYPTION",
-            font=("Arial", 21, "bold"),
-            fg="white",
-            bg="#344F75",
-            activebackground="#496A96",
-            activeforeground="white",
-            relief="flat",
-            command=self.show_encryption
-        )
-
-        encryption_button.pack(
-            side="left",
-            expand=True,
-            fill="both",
-            padx=15
-        )
-
-        # Plugboard button
-
-        plugboard_button = tk.Button(
-            button_frame,
-            text="PLUGBOARD",
-            font=("Arial", 21, "bold"),
-            fg="white",
-            bg="#344F75",
-            activebackground="#496A96",
-            activeforeground="white",
-            relief="flat",
-            command=self.show_plugboard
-        )
-
-        plugboard_button.pack(
-            side="left",
-            expand=True,
-            fill="both",
-            padx=15
-        )
-
-
-    # ======================================
-    # ENCRYPTION / DECRYPTION
-    # ======================================
-
-    def shift_text(self, text, shift):
-
-        result = ""
-
-        for letter in text:
-
-            if "a" <= letter <= "z":
-
-                new_letter = chr(
-                    (ord(letter) - ord("a") + shift) % 26
-                    + ord("a")
-                )
-
-                result += new_letter
-
-            elif "A" <= letter <= "Z":
-
-                new_letter = chr(
-                    (ord(letter) - ord("A") + shift) % 26
-                    + ord("A")
-                )
-
-                result += new_letter
-
-            else:
-
-                # Preserve spaces, numbers and punctuation
-                result += letter
-
-        return result
-
-
-    def show_encryption(self):
-
-        self.clear_page()
-
-        self.create_header(
-            "ENCRYPTION / DECRYPTION"
-        )
-
-        # INPUT SECTION
-
-        input_frame = tk.LabelFrame(
-            self.root,
-            text=" INPUT TEXT ",
-            font=("Arial", 13, "bold"),
-            fg="white",
-            bg="#18243A",
-            labelanchor="nw"
-        )
-
-        input_frame.pack(
-            fill="both",
-            expand=True,
-            padx=25,
-            pady=5
-        )
-
-        self.input_text = tk.Text(
-            input_frame,
-            font=("Arial", 17),
-            wrap="word",
-            bg="#263750",
-            fg="white",
-            insertbackground="white",
-            relief="flat",
-            height=4
-        )
-
-        self.input_text.pack(
-            fill="both",
-            expand=True,
-            padx=8,
-            pady=8
-        )
-
-        # CONTROL BUTTONS
-
-        control_frame = tk.Frame(
-            self.root,
-            bg="#18243A"
-        )
-
-        control_frame.pack(pady=10)
-
-        encrypt_button = tk.Button(
-            control_frame,
-            text="ENCRYPT",
-            font=("Arial", 13, "bold"),
-            bg="#397D65",
-            fg="white",
-            activebackground="#4C9A7C",
-            relief="flat",
-            width=12,
-            command=self.encrypt
-        )
-
-        encrypt_button.pack(side="left", padx=10)
-
-        decrypt_button = tk.Button(
-            control_frame,
-            text="DECRYPT",
-            font=("Arial", 13, "bold"),
-            bg="#397D65",
-            fg="white",
-            activebackground="#4C9A7C",
-            relief="flat",
-            width=12,
-            command=self.decrypt
-        )
-
-        decrypt_button.pack(side="left", padx=10)
-
-        clear_button = tk.Button(
-            control_frame,
-            text="CLEAR",
-            font=("Arial", 13, "bold"),
-            bg="#A34B4B",
-            fg="white",
-            activebackground="#C26060",
-            relief="flat",
-            width=10,
-            command=self.clear_text
-        )
-
-        clear_button.pack(side="left", padx=10)
-
-        # OUTPUT SECTION
-
-        output_frame = tk.LabelFrame(
-            self.root,
-            text=" OUTPUT TEXT ",
-            font=("Arial", 13, "bold"),
-            fg="white",
-            bg="#18243A",
-            labelanchor="nw"
-        )
-
-        output_frame.pack(
-            fill="both",
-            expand=True,
-            padx=25,
-            pady=5
-        )
-
-        self.output_text = tk.Text(
-            output_frame,
-            font=("Arial", 17),
-            wrap="word",
-            bg="#263750",
-            fg="#83D6AE",
-            relief="flat",
-            height=4,
-            state="disabled"
-        )
-
-        self.output_text.pack(
-            fill="both",
-            expand=True,
-            padx=8,
-            pady=8
-        )
-
-
-    def display_output(self, result):
-
-        self.output_text.config(state="normal")
-
-        self.output_text.delete("1.0", "end")
-
-        self.output_text.insert("1.0", result)
-
-        self.output_text.config(state="disabled")
-
-
-    def encrypt(self):
-
-        text = self.input_text.get(
-            "1.0", "end-1c"
-        )
-
-        result = self.shift_text(text, 1)
-
-        self.display_output(result)
-
-
-    def decrypt(self):
-
-        text = self.input_text.get(
-            "1.0", "end-1c"
-        )
-
-        result = self.shift_text(text, -1)
-
-        self.display_output(result)
-
-
-    def clear_text(self):
-
-        self.input_text.delete("1.0", "end")
-
-        self.display_output("")
-
-
-    # ======================================
-    # PLUGBOARD
-    # ======================================
-
-    def show_plugboard(self):
-
-        self.clear_page()
-
-        self.create_header("PLUGBOARD")
-
-        instruction = tk.Label(
-            self.root,
-            text="SELECT TWO DIFFERENT LETTERS TO CONNECT THEM",
-            font=("Arial", 12),
-            fg="#AAB8CC",
-            bg="#18243A"
-        )
-
-        instruction.pack(pady=5)
-
-        self.status_label = tk.Label(
-            self.root,
-            text="Select your first letter",
-            font=("Arial", 13, "bold"),
-            fg="#E8B85B",
-            bg="#18243A"
-        )
-
-        self.status_label.pack(pady=5)
-
-        # Canvas for letters and connection lines
-
-        self.plug_canvas = tk.Canvas(
-            self.root,
-            bg="#18243A",
-            highlightthickness=0
-        )
-
-        self.plug_canvas.pack(
-            fill="both",
-            expand=True,
-            padx=15,
-            pady=5
-        )
-
-        self.plug_canvas.bind(
-            "<Configure>",
-            self.draw_plugboard
-        )
-
-        # Clear all connections button
-
-        clear_button = tk.Button(
-            self.root,
-            text="CLEAR ALL CONNECTIONS",
-            font=("Arial", 11, "bold"),
-            bg="#A34B4B",
-            fg="white",
-            relief="flat",
-            command=self.clear_plugboard
-        )
-
-        clear_button.pack(pady=8)
-
-
-    def draw_plugboard(self, event=None):
-
-        canvas = self.plug_canvas
-
-        canvas.delete("all")
-
-        width = canvas.winfo_width()
-        height = canvas.winfo_height()
-
-        if width < 100 or height < 100:
-            return
-
-        letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-
-        # Three rows: 10, 9, 7 letters
-
-        rows = [
-            letters[0:10],
-            letters[10:19],
-            letters[19:26]
-        ]
-
-        # Calculate responsive spacing
-
-        step = min((width - 80) / 9, 75)
-
-        radius = min(25, step * 0.38)
-
-        row_positions = [
-            height * 0.20,
-            height * 0.50,
-            height * 0.80
-        ]
-
-        positions = {}
-
-        for row_index, row in enumerate(rows):
-
-            row_width = (len(row) - 1) * step
-
-            start_x = (width - row_width) / 2
-
-            y = row_positions[row_index]
-
-            for i, letter in enumerate(row):
-
-                x = start_x + i * step
-
-                positions[letter] = (x, y)
-
-        # Draw connection lines FIRST
-        # Buttons and letters will be drawn on top.
-
-        drawn_pairs = set()
-
-        for letter, partner in self.plugboard_pairs.items():
-
-            pair = frozenset((letter, partner))
-
-            if pair in drawn_pairs:
-                continue
-
-            drawn_pairs.add(pair)
-
-            x1, y1 = positions[letter]
-            x2, y2 = positions[partner]
-
-            canvas.create_line(
-                x1, y1,
-                x2, y2,
-                fill="#E8B85B",
-                width=4
-            )
-
-        # Draw letter buttons on top of lines
-
-        for letter, (x, y) in positions.items():
-
-            is_selected = (
-                letter == self.selected_letter
-            )
-
-            is_connected = (
-                letter in self.plugboard_pairs
-            )
-
-            if is_selected:
-                fill = "#F1C75B"
-
-            elif is_connected:
-                fill = "#397D65"
-
-            else:
-                fill = "#E6EAF0"
-
-            text_colour = "#18243A"
-
-            canvas.create_oval(
-                x - radius,
-                y - radius,
-                x + radius,
-                y + radius,
-                fill=fill,
-                outline="#FFFFFF",
-                width=2,
-                tags=("letter", "letter_" + letter)
-            )
-
-            canvas.create_text(
-                x,
-                y,
-                text=letter,
-                font=("Arial", 15, "bold"),
-                fill=text_colour,
-                tags=("letter", "letter_" + letter)
-            )
-
-            canvas.tag_bind(
-                "letter_" + letter,
-                "<Button-1>",
-                lambda event, l=letter:
-                    self.select_plug_letter(l)
-            )
-
-
-    def select_plug_letter(self, letter):
-
-        # First selection
-
-        if self.selected_letter is None:
-
-            if letter in self.plugboard_pairs:
-
-                self.status_label.config(
-                    text=letter + " is already connected. Clear connections to reset."
-                )
-
-                return
-
-            self.selected_letter = letter
-
-            self.status_label.config(
-                text="Selected " + letter + ". Now select another letter."
-            )
-
-            self.draw_plugboard()
-
-            return
-
-        # Clicking the same letter cancels selection
-
-        if letter == self.selected_letter:
-
-            self.selected_letter = None
-
-            self.status_label.config(
-                text="Selection cancelled. Choose a letter."
-            )
-
-            self.draw_plugboard()
-
-            return
-
-        first_letter = self.selected_letter
-
-        # Do not allow a letter to have multiple connections
-
-        if letter in self.plugboard_pairs:
-
-            self.status_label.config(
-                text=letter + " is already connected. Choose another letter."
-            )
-
-            return
-
-        # Create the connection
-
-        self.plugboard_pairs[first_letter] = letter
-
-        self.plugboard_pairs[letter] = first_letter
-
-        self.selected_letter = None
-
-        self.status_label.config(
-            text=first_letter + " <-> " + letter + " connected!"
-        )
-
-        self.draw_plugboard()
-
-
-    def clear_plugboard(self):
-
-        self.plugboard_pairs.clear()
-
-        self.selected_letter = None
-
-        self.status_label.config(
-            text="All connections cleared. Select a letter."
-        )
-
-        self.draw_plugboard()
-
-
-# ==========================================
-# START APPLICATION
-# ==========================================
-
-if __name__ == "__main__":
-
-    root = tk.Tk()
-
-    app = EnigmaMachine(root)
-
-    root.mainloop()
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Enigma Machine Simulator</title>
+  <style>
+    /* =================================
+       GLOBAL DESIGN
+    ================================= */
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      margin: 0;
+      background: #111C2E;
+      color: #FFFFFF;
+      font-family: Arial, sans-serif;
+      overflow-x: hidden;
+    }
+
+    button, input {
+      font-family: inherit;
+      cursor: pointer;
+      touch-action: manipulation;
+    }
+
+    .app {
+      width: 100%;
+      min-height: 100vh;
+      min-height: 100dvh;
+    }
+
+    .page {
+      display: none;
+      min-height: 100vh;
+      min-height: 100dvh;
+      padding: 25px;
+    }
+
+    .page.active {
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* =================================
+       HOME PAGE
+    ================================= */
+    #homePage {
+      justify-content: center;
+      align-items: center;
+      background: radial-gradient(circle at center, #263D5C, #111C2E 75%);
+    }
+
+    .home-header {
+      text-align: center;
+      margin-bottom: 55px;
+    }
+
+    .machine-icon {
+      font-size: 45px;
+      color: #E6B85C;
+      margin-bottom: 15px;
+    }
+
+    .home-header h1 {
+      font-size: clamp(30px, 6vw, 48px);
+      letter-spacing: 5px;
+      margin: 0;
+    }
+
+    .home-header p {
+      color: #9BAEC5;
+      letter-spacing: 3px;
+      font-size: 12px;
+      margin-top: 15px;
+    }
+
+    .home-buttons {
+      width: min(850px, 100%);
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 25px;
+    }
+
+    .menu-card {
+      min-height: 210px;
+      border: 1px solid #526987;
+      border-radius: 18px;
+      background: #263D5D;
+      color: white;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 15px;
+      font-size: 19px;
+      font-weight: bold;
+      transition: 0.2s;
+    }
+
+    .menu-card:active {
+      background: #3C587C;
+      transform: scale(0.97);
+    }
+
+    .menu-icon {
+      font-size: 48px;
+      color: #E6B85C;
+    }
+
+    .menu-subtitle {
+      font-size: 11px;
+      color: #B2C2D4;
+      letter-spacing: 2px;
+    }
+
+    footer {
+      color: #778CA7;
+      font-size: 10px;
+      letter-spacing: 2px;
+      margin-top: 50px;
+    }
+
+    /* =================================
+       TOP NAVIGATION
+    ================================= */
+    .top-bar {
+      height: 65px;
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      border-bottom: 1px solid #35465F;
+      flex-shrink: 0;
+      margin-bottom: 20px;
+    }
+
+    .top-bar h2 {
+      font-size: clamp(15px, 3vw, 22px);
+      letter-spacing: 1px;
+      margin: 0;
+    }
+
+    .back-button {
+      background: #344761;
+      border: none;
+      border-radius: 8px;
+      padding: 12px 18px;
+      color: white;
+      font-weight: bold;
+      white-space: nowrap;
+    }
+
+    /* =================================
+       ENCRYPTION PAGE
+    ================================= */
+    .cipher-container {
+      width: min(850px, 100%);
+      margin: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+      flex: 1;
+      justify-content: center;
+    }
+
+    .text-section {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      flex: 1;
+      min-height: 110px;
+    }
+
+    .text-section label {
+      font-size: 13px;
+      font-weight: bold;
+      letter-spacing: 2px;
+      color: #E6B85C;
+    }
+
+    textarea {
+      width: 100%;
+      flex: 1;
+      min-height: 100px;
+      resize: none;
+      border: 1px solid #526987;
+      border-radius: 10px;
+      background: #23344D;
+      color: white;
+      padding: 15px;
+      font-size: 18px;
+      line-height: 1.5;
+      outline: none;
+    }
+
+    textarea:focus {
+      border-color: #E6B85C;
+    }
+
+    #outputText {
+      color: #83D6AE;
+    }
+
+    .action-buttons {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .action-button {
+      border: none;
+      border-radius: 8px;
+      padding: 14px 22px;
+      font-size: 13px;
+      font-weight: bold;
+      color: white;
+    }
+
+    .encrypt-button, .decrypt-button {
+      background: #397D65;
+    }
+
+    .clear-button {
+      background: #A34B4B;
+    }
+
+    .action-button:active, .reset-button:active, .back-button:active {
+      opacity: 0.7;
+    }
+
+    /* =================================
+       SPLIT PAGE LAYOUT (PLUGBOARD + KEY SETTING)
+    ================================= */
+    .split-container {
+      display: flex;
+      flex: 1;
+      gap: 20px;
+      min-height: 0;
+      /* 强制左右平分 */
+    }
+
+    .left-panel, .right-panel {
+      width: 50%; /* 强制占据 50% */
+      flex: none; /* 取消自动放大 */
+      display: flex;
+      flex-direction: column;
+      background: #18283f;
+      border-radius: 15px;
+      padding: 20px;
+      border: 1px solid #2b415c;
+      overflow-y: auto; /* 内容过多时允许内部滚动 */
+    }
+
+    /* =================================
+       PLUGBOARD (Left Panel)
+    ================================= */
+    .plugboard-info {
+      text-align: center;
+      flex-shrink: 0;
+      margin-bottom: 10px;
+    }
+
+    #plugStatus {
+      color: #E6B85C;
+      font-size: 15px;
+      font-weight: bold;
+      letter-spacing: 1px;
+      margin: 0 0 5px 0;
+    }
+
+    .plug-instruction {
+      color: #9BAEC5;
+      font-size: 12px;
+      margin: 0;
+    }
+
+    .plugboard-area {
+      position: relative;
+      width: 100%;
+      margin: auto;
+      flex: 1;
+      min-height: 210px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-around;
+      padding: 12px 0;
+    }
+
+    #connectionLines {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      overflow: visible;
+      z-index: 0;
+    }
+
+    .letter-row {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: clamp(2px, 1vw, 8px);
+      width: 100%;
+      position: relative;
+      z-index: 1;
+    }
+
+    .letter-button {
+      width: clamp(22px, 5vw, 45px);
+      height: clamp(22px, 5vw, 45px);
+      flex: 0 1 45px;
+      border-radius: 50%;
+      border: 2px solid #B8C6D7;
+      background: #E6EAF0;
+      color: #18243A;
+      font-size: clamp(10px, 2vw, 16px);
+      font-weight: bold;
+      padding: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: 0.15s;
+      position: relative;
+    }
+
+    .letter-button.selected {
+      background: #F1C75B;
+      border-color: #FFFFFF;
+      box-shadow: 0 0 15px #F1C75B;
+      transform: scale(1.1);
+    }
+
+    .letter-button.connected {
+      background: #397D65;
+      border-color: #83D6AE;
+      color: white;
+    }
+
+    .plugboard-bottom {
+      text-align: center;
+      padding-top: 10px;
+      flex-shrink: 0;
+    }
+
+    #connectionList {
+      color: #E6B85C;
+      font-size: 12px;
+      margin-bottom: 10px;
+    }
+
+    .reset-button {
+      border: none;
+      background: #A34B4B;
+      color: white;
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: bold;
+    }
+
+    #connectionLines line {
+      stroke: #E6B85C;
+      stroke-width: 3;
+      stroke-linecap: round;
+      opacity: 0.8;
+    }
+
+    /* =================================
+       KEY SETTING (Right Panel)
+    ================================= */
+    .key-setting-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 40px;
+      height: 100%;
+      justify-content: center;
+      padding: 10px;
+    }
+
+    .setting-section {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+
+    .setting-title {
+      font-size: 14px;
+      color: #E6B85C;
+      letter-spacing: 2px;
+      border-bottom: 1px dashed #526987;
+      padding-bottom: 8px;
+      margin: 0;
+      text-align: center;
+    }
+
+    /* Rotor Order Drag & Drop */
+    .rotor-pool {
+      display: flex;
+      justify-content: center;
+      gap: 15px;
+      min-height: 60px;
+      padding: 10px;
+      background: #111c2e;
+      border-radius: 10px;
+      border: 1px dashed #35465F;
+    }
+
+    .rotor-element {
+      width: 45px;
+      height: 45px;
+      background: #344761;
+      border: 2px solid #526987;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      font-size: 16px;
+      color: #fff;
+      cursor: grab;
+      user-select: none;
+      transition: 0.2s;
+    }
+
+    .rotor-element:active {
+      cursor: grabbing;
+    }
+
+    .rotor-element.dragging {
+      opacity: 0.5;
+      transform: scale(0.9);
+    }
+
+    .rotor-slots {
+      display: flex;
+      justify-content: space-around;
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    .slot-wrapper {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .rotor-slot {
+      width: 60px;
+      height: 60px;
+      border: 2px dashed #526987;
+      border-radius: 10px;
+      background: #23344D;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: 0.2s;
+    }
+
+    .rotor-slot.drag-over {
+      background: #397D65;
+      border-color: #83D6AE;
+      transform: scale(1.05);
+    }
+
+    .slot-label {
+      font-size: 11px;
+      color: #9BAEC5;
+      letter-spacing: 1px;
+      text-align: center;
+    }
+
+    /* Rotor Setting Inputs */
+    .setting-inputs {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 15px;
+      position: relative;
+    }
+
+    .letter-input {
+      width: 60px;
+      height: 60px;
+      background: #23344D;
+      border: 2px solid #526987;
+      border-radius: 10px;
+      color: #fff;
+      font-size: 24px;
+      font-weight: bold;
+      text-align: center;
+      text-transform: uppercase;
+      outline: none;
+    }
+
+    .letter-input:focus {
+      border-color: #E6B85C;
+      box-shadow: 0 0 10px rgba(230, 184, 92, 0.3);
+    }
+
+    .input-hint {
+      font-size: 12px;
+      color: #9BAEC5;
+      letter-spacing: 1px;
+      margin-left: 5px;
+    }
+
+    /* =================================
+       RESPONSIVENESS (Mobile Stack)
+    ================================= */
+    @media (max-width: 800px) {
+      .home-buttons { grid-template-columns: 1fr; }
+      
+      /* 手机端变成上下排列 */
+      .split-container { 
+        flex-direction: column; 
+        overflow-y: auto; 
+      }
+      
+      .left-panel, .right-panel { 
+        width: 100%; 
+        flex: none; 
+        overflow-y: visible; 
+      }
+      
+      .letter-button { 
+        width: clamp(20px, 7vw, 35px); 
+        height: clamp(20px, 7vw, 35px); 
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="app">
+
+    <!-- HOME PAGE -->
+    <section id="homePage" class="page active">
+      <header class="home-header">
+        <div class="machine-icon">⚙</div>
+        <h1>ENIGMA MACHINE</h1>
+        <p>GERMAN ENCRYPTION SIMULATOR</p>
+      </header>
+
+      <div class="home-buttons">
+        <button class="menu-card" onclick="showPage('cipherPage')">
+          <span class="menu-icon">⌨</span>
+          <span>ENCRYPTION</span>
+          <span class="menu-subtitle">ENCRYPT / DECRYPT</span>
+        </button>
+
+        <button class="menu-card" onclick="showPage('plugboardPage')">
+          <span class="menu-icon">⟷</span>
+          <span>KEY INSERT</span>
+          <span class="menu-subtitle">PLUGBOARD / KEY SETTING</span>
+        </button>
+      </div>
+
+      <footer>ENIGMA MACHINE PROJECT · V1.0</footer>
+    </section>
+
+    <!-- ENCRYPTION PAGE -->
+    <section id="cipherPage" class="page">
+      <div class="top-bar">
+        <button class="back-button" onclick="showPage('homePage')">← BACK</button>
+        <h2>ENCRYPTION / DECRYPTION</h2>
+      </div>
+
+      <div class="cipher-container">
+        <div class="text-section">
+          <label>INPUT TEXT</label>
+          <textarea id="inputText" placeholder="Enter your message here..." spellcheck="false"></textarea>
+        </div>
+
+        <div class="action-buttons">
+          <button class="action-button encrypt-button" onclick="encryptText()">ENCRYPT →</button>
+          <button class="action-button decrypt-button" onclick="decryptText()">← DECRYPT</button>
+          <button class="action-button clear-button" onclick="clearText()">CLEAR</button>
+        </div>
+
+        <div class="text-section output-section">
+          <label>OUTPUT TEXT</label>
+          <textarea id="outputText" placeholder="Your result will appear here..." readonly spellcheck="false"></textarea>
+        </div>
+      </div>
+    </section>
+
+    <!-- COMBINED PAGE: PLUGBOARD & KEY SETTING -->
+    <section id="plugboardPage" class="page">
+      <div class="top-bar">
+        <button class="back-button" onclick="showPage('homePage')">← BACK</button>
+        <h2>MACHINE SETTINGS</h2>
+      </div>
+
+      <div class="split-container">
+        
+        <!-- LEFT: PLUGBOARD -->
+        <div class="left-panel">
+          <div class="plugboard-info">
+            <p id="plugStatus">SELECT YOUR FIRST LETTER</p>
+            <p class="plug-instruction">Select two different letters to connect them.</p>
+          </div>
+
+          <div class="plugboard-area">
+            <svg id="connectionLines"></svg>
+            <div class="letter-row" id="row1"></div>
+            <div class="letter-row" id="row2"></div>
+            <div class="letter-row" id="row3"></div>
+          </div>
+
+          <div class="plugboard-bottom">
+            <div id="connectionList">NO CONNECTIONS</div>
+            <button class="reset-button" onclick="clearPlugboard()">CLEAR ALL CONNECTIONS</button>
+          </div>
+        </div>
+
+        <!-- RIGHT: KEY SETTING -->
+        <div class="right-panel">
+          <div class="key-setting-panel">
+            
+            <!-- Rotor Order Section -->
+            <div class="setting-section">
+              <h3 class="setting-title">ROTOR ORDER</h3>
+              
+              <div class="rotor-pool" id="rotorPool">
+                <div class="rotor-element" draggable="true" data-rotor="I">I</div>
+                <div class="rotor-element" draggable="true" data-rotor="II">II</div>
+                <div class="rotor-element" draggable="true" data-rotor="III">III</div>
+                <div class="rotor-element" draggable="true" data-rotor="IV">IV</div>
+                <div class="rotor-element" draggable="true" data-rotor="V">V</div>
+              </div>
+
+              <div class="rotor-slots">
+                <div class="slot-wrapper">
+                  <div class="rotor-slot" data-slot="0"></div>
+                  <span class="slot-label">SLOW ROTOR</span>
+                </div>
+                <div class="slot-wrapper">
+                  <div class="rotor-slot" data-slot="1"></div>
+                  <span class="slot-label">MIDDLE</span>
+                </div>
+                <div class="slot-wrapper">
+                  <div class="rotor-slot" data-slot="2"></div>
+                  <span class="slot-label">FAST ROTOR</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Rotor Setting Section -->
+            <div class="setting-section">
+              <h3 class="setting-title">ROTOR SETTING</h3>
+              <div class="setting-inputs">
+                <input type="text" class="letter-input" maxlength="1" placeholder="-">
+                <input type="text" class="letter-input" maxlength="1" placeholder="-">
+                <input type="text" class="letter-input" maxlength="1" placeholder="-">
+                <span class="input-hint">(a ~ z)</span>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+  </div>
+
+  <script>
+    /* =================================
+       PAGE NAVIGATION
+    ================================= */
+    function showPage(pageId) {
+      document.querySelectorAll(".page").forEach(page => {
+        page.classList.remove("active");
+      });
+      document.getElementById(pageId).classList.add("active");
+
+      if (pageId === "plugboardPage") {
+        // 稍微延迟，等待 DOM 布局完成再画线
+        setTimeout(() => {
+          requestAnimationFrame(drawConnections);
+        }, 100);
+      }
+    }
+
+    /* =================================
+       ENCRYPTION / DECRYPTION
+    ================================= */
+    function shiftText(text, shift) {
+      return text.replace(/[a-zA-Z]/g, letter => {
+        const base = letter === letter.toUpperCase() ? 65 : 97;
+        return String.fromCharCode(
+          ((letter.charCodeAt(0) - base + shift + 26) % 26) + base
+        );
+      });
+    }
+
+    function encryptText() {
+      const input = document.getElementById("inputText").value;
+      const output = shiftText(input, 1);
+      document.getElementById("outputText").value = output;
+    }
+
+    function decryptText() {
+      const input = document.getElementById("inputText").value;
+      const output = shiftText(input, -1);
+      document.getElementById("outputText").value = output;
+    }
+
+    function clearText() {
+      document.getElementById("inputText").value = "";
+      document.getElementById("outputText").value = "";
+    }
+
+    /* =================================
+       PLUGBOARD LOGIC
+    ================================= */
+    let plugboardPairs = {};
+    let selectedLetter = null;
+
+    // 10, 9, 7 布局
+    const alphabetRows = ["ABCDEFGHIJ", "KLMNOPQRS", "TUVWXYZ"];
+
+    function createPlugboard() {
+      alphabetRows.forEach((letters, rowIndex) => {
+        const row = document.getElementById("row" + (rowIndex + 1));
+        row.innerHTML = "";
+        for (const letter of letters) {
+          const button = document.createElement("button");
+          button.className = "letter-button";
+          button.textContent = letter;
+          button.dataset.letter = letter;
+          button.addEventListener("click", () => selectLetter(letter));
+          row.appendChild(button);
+        }
+      });
+      updatePlugboard();
+    }
+
+    function selectLetter(letter) {
+      const status = document.getElementById("plugStatus");
+
+      if (selectedLetter === null) {
+        if (plugboardPairs[letter]) {
+          status.textContent = letter + " IS ALREADY CONNECTED";
+          return;
+        }
+        selectedLetter = letter;
+        status.textContent = "SELECTED " + letter + " — CHOOSE ANOTHER LETTER";
+        updatePlugboard();
+        return;
+      }
+
+      if (selectedLetter === letter) {
+        selectedLetter = null;
+        status.textContent = "SELECTION CANCELLED";
+        updatePlugboard();
+        return;
+      }
+
+      if (plugboardPairs[letter]) {
+        status.textContent = letter + " IS ALREADY CONNECTED";
+        return;
+      }
+
+      const first = selectedLetter;
+      plugboardPairs[first] = letter;
+      plugboardPairs[letter] = first;
+      selectedLetter = null;
+      status.textContent = first + " ↔ " + letter + " CONNECTED";
+      updatePlugboard();
+    }
+
+    function updatePlugboard() {
+      document.querySelectorAll(".letter-button").forEach(button => {
+        const letter = button.dataset.letter;
+        button.classList.remove("selected", "connected");
+        if (letter === selectedLetter) {
+          button.classList.add("selected");
+        } else if (plugboardPairs[letter]) {
+          button.classList.add("connected");
+        }
+      });
+      updateConnectionList();
+      requestAnimationFrame(drawConnections);
+    }
+
+    function drawConnections() {
+      const svg = document.getElementById("connectionLines");
+      const area = document.querySelector(".plugboard-area");
+      // 如果页面不可见（比如在首页），就不要画线
+      if (!svg || !area || area.offsetParent === null) return;
+
+      const areaRect = area.getBoundingClientRect();
+      svg.innerHTML = "";
+      const drawnPairs = new Set();
+
+      for (const [letter, partner] of Object.entries(plugboardPairs)) {
+        const pair = [letter, partner].sort().join("");
+        if (drawnPairs.has(pair)) continue;
+        drawnPairs.add(pair);
+
+        const buttonA = document.querySelector(`[data-letter="${letter}"]`);
+        const buttonB = document.querySelector(`[data-letter="${partner}"]`);
+        if (!buttonA || !buttonB) continue;
+
+        const rectA = buttonA.getBoundingClientRect();
+        const rectB = buttonB.getBoundingClientRect();
+
+        // 计算相对于 plugboard-area 的坐标
+        const x1 = rectA.left + rectA.width / 2 - areaRect.left;
+        const y1 = rectA.top + rectA.height / 2 - areaRect.top;
+        const x2 = rectB.left + rectB.width / 2 - areaRect.left;
+        const y2 = rectB.top + rectB.height / 2 - areaRect.top;
+
+        const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+        line.setAttribute("x1", x1);
+        line.setAttribute("y1", y1);
+        line.setAttribute("x2", x2);
+        line.setAttribute("y2", y2);
+        svg.appendChild(line);
+      }
+    }
+
+    function updateConnectionList() {
+      const display = document.getElementById("connectionList");
+      const connections = [];
+      const drawnPairs = new Set();
+
+      for (const [letter, partner] of Object.entries(plugboardPairs)) {
+        const pair = [letter, partner].sort().join("");
+        if (!drawnPairs.has(pair)) {
+          connections.push(pair);
+          drawnPairs.add(pair);
+        }
+      }
+      display.textContent = connections.length
+        ? "CONNECTIONS: " + connections.join("  |  ")
+        : "NO CONNECTIONS";
+    }
+
+    function clearPlugboard() {
+      plugboardPairs = {};
+      selectedLetter = null;
+      document.getElementById("plugStatus").textContent = "ALL CONNECTIONS CLEARED";
+      updatePlugboard();
+    }
+
+    /* =================================
+       KEY SETTING (DRAG & DROP)
+    ================================= */
+    const rotors = document.querySelectorAll('.rotor-element');
+    const slots = document.querySelectorAll('.rotor-slot');
+    const pool = document.getElementById('rotorPool');
+    let draggedRotor = null;
+
+    rotors.forEach(rotor => {
+      rotor.addEventListener('dragstart', (e) => {
+        draggedRotor = rotor;
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', rotor.dataset.rotor); 
+        setTimeout(() => rotor.classList.add('dragging'), 0);
+      });
+
+      rotor.addEventListener('dragend', () => {
+        rotor.classList.remove('dragging');
+        draggedRotor = null;
+      });
+    });
+
+    const dropZones = [...slots, pool];
+
+    dropZones.forEach(zone => {
+      zone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        if (zone.classList.contains('rotor-slot')) {
+          zone.classList.add('drag-over');
+        }
+      });
+
+      zone.addEventListener('dragleave', () => {
+        if (zone.classList.contains('rotor-slot')) {
+          zone.classList.remove('drag-over');
+        }
+      });
+
+      zone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        if (zone.classList.contains('rotor-slot')) {
+          zone.classList.remove('drag-over');
+        }
+        if (!draggedRotor) return;
+
+        if (zone.classList.contains('rotor-slot')) {
+          // 如果槽位有东西，扔回池子
+          const existingRotor = zone.querySelector('.rotor-element');
+          if (existingRotor && existingRotor !== draggedRotor) {
+            pool.appendChild(existingRotor);
+          }
+          zone.appendChild(draggedRotor);
+        } else if (zone.id === 'rotorPool') {
+          pool.appendChild(draggedRotor);
+        }
+      });
+    });
+
+    // 输入框限制
+    const letterInputs = document.querySelectorAll('.letter-input');
+    letterInputs.forEach(input => {
+      input.addEventListener('input', (e) => {
+        e.target.value = e.target.value.toUpperCase().replace(/[^A-Z]/g, '');
+      });
+    });
+
+    /* =================================
+       INITIALIZATION
+    ================================= */
+    createPlugboard();
+
+    window.addEventListener("resize", () => {
+      requestAnimationFrame(drawConnections);
+    });
+  </script>
+</body>
+</html>
