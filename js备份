@@ -1,0 +1,351 @@
+/* =================================
+   PAGE NAVIGATION
+================================= */
+function showPage(pageId) {
+  document.querySelectorAll(".page").forEach(page => {
+    page.classList.remove("active");
+  });
+  document.getElementById(pageId).classList.add("active");
+
+  if (pageId === "plugboardPage") {
+    setTimeout(() => {
+      requestAnimationFrame(drawConnections);
+    }, 50);
+  }
+}
+
+/* =================================
+   ENCRYPTION / DECRYPTION
+================================= */
+function shiftText(text, shift) {
+  return text.replace(/[a-zA-Z]/g, letter => {
+    const base = letter === letter.toUpperCase() ? 65 : 97;
+    return String.fromCharCode(
+      ((letter.charCodeAt(0) - base + shift + 26) % 26) + base
+    );
+  });
+}
+
+function encryptText() {
+  const input = document.getElementById("inputText").value;
+  const output = shiftText(input, 1);
+  document.getElementById("outputText").value = output;
+}
+
+function decryptText() {
+  const input = document.getElementById("inputText").value;
+  const output = shiftText(input, -1);
+  document.getElementById("outputText").value = output;
+}
+
+function clearText() {
+  document.getElementById("inputText").value = "";
+  document.getElementById("outputText").value = "";
+}
+
+/* =================================
+   PLUGBOARD LOGIC
+================================= */
+let plugboardPairs = {};
+let selectedLetter = null;
+const alphabetRows = ["ABCDEFGHIJ", "KLMNOPQRS", "TUVWXYZ"];
+
+function createPlugboard() {
+  alphabetRows.forEach((letters, rowIndex) => {
+    const row = document.getElementById("row" + (rowIndex + 1));
+    row.innerHTML = "";
+    for (const letter of letters) {
+      const button = document.createElement("button");
+      button.className = "letter-button";
+      button.textContent = letter;
+      button.dataset.letter = letter;
+      button.addEventListener("click", () => selectLetter(letter));
+      row.appendChild(button);
+    }
+  });
+  updatePlugboard();
+}
+
+function selectLetter(letter) {
+  const status = document.getElementById("plugStatus");
+
+  if (selectedLetter === null) {
+    if (plugboardPairs[letter]) {
+      status.textContent = letter + " IS ALREADY CONNECTED";
+      return;
+    }
+    selectedLetter = letter;
+    status.textContent = "SELECTED " + letter + " — CHOOSE ANOTHER LETTER";
+    updatePlugboard();
+    return;
+  }
+
+  if (selectedLetter === letter) {
+    selectedLetter = null;
+    status.textContent = "SELECTION CANCELLED";
+    updatePlugboard();
+    return;
+  }
+
+  if (plugboardPairs[letter]) {
+    status.textContent = letter + " IS ALREADY CONNECTED";
+    return;
+  }
+
+  const first = selectedLetter;
+  plugboardPairs[first] = letter;
+  plugboardPairs[letter] = first;
+  selectedLetter = null;
+  status.textContent = first + " ↔ " + letter + " CONNECTED";
+  updatePlugboard();
+}
+
+function updatePlugboard() {
+  document.querySelectorAll(".letter-button").forEach(button => {
+    const letter = button.dataset.letter;
+    button.classList.remove("selected", "connected");
+    if (letter === selectedLetter) {
+      button.classList.add("selected");
+    } else if (plugboardPairs[letter]) {
+      button.classList.add("connected");
+    }
+  });
+  updateConnectionList();
+  requestAnimationFrame(drawConnections);
+}
+
+function drawConnections() {
+  const svg = document.getElementById("connectionLines");
+  const area = document.querySelector(".plugboard-area");
+  if (!svg || !area || area.offsetParent === null) return;
+
+  const areaRect = area.getBoundingClientRect();
+  svg.innerHTML = "";
+  const drawnPairs = new Set();
+
+  for (const [letter, partner] of Object.entries(plugboardPairs)) {
+    const pair = [letter, partner].sort().join("");
+    if (drawnPairs.has(pair)) continue;
+    drawnPairs.add(pair);
+
+    const buttonA = document.querySelector(`[data-letter="${letter}"]`);
+    const buttonB = document.querySelector(`[data-letter="${partner}"]`);
+    if (!buttonA || !buttonB) continue;
+
+    const rectA = buttonA.getBoundingClientRect();
+    const rectB = buttonB.getBoundingClientRect();
+
+    const x1 = rectA.left + rectA.width / 2 - areaRect.left;
+    const y1 = rectA.top + rectA.height / 2 - areaRect.top;
+    const x2 = rectB.left + rectB.width / 2 - areaRect.left;
+    const y2 = rectB.top + rectB.height / 2 - areaRect.top;
+
+    const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+    line.setAttribute("x1", x1);
+    line.setAttribute("y1", y1);
+    line.setAttribute("x2", x2);
+    line.setAttribute("y2", y2);
+    svg.appendChild(line);
+  }
+}
+
+function updateConnectionList() {
+  const display = document.getElementById("connectionList");
+  const connections = [];
+  const drawnPairs = new Set();
+
+  for (const [letter, partner] of Object.entries(plugboardPairs)) {
+    const pair = [letter, partner].sort().join("");
+    if (!drawnPairs.has(pair)) {
+      connections.push(pair);
+      drawnPairs.add(pair);
+    }
+  }
+  display.textContent = connections.length
+    ? "CONNECTIONS: " + connections.join("  |  ")
+    : "NO CONNECTIONS";
+}
+
+function clearPlugboard() {
+  plugboardPairs = {};
+  selectedLetter = null;
+  document.getElementById("plugStatus").textContent = "ALL CONNECTIONS CLEARED";
+  updatePlugboard();
+}
+
+/* =================================
+   KEY SETTING (DRAG & DROP + TOUCH SUPPORT)
+================================= */
+const rotors = document.querySelectorAll('.rotor-element');
+const slots = document.querySelectorAll('.rotor-slot');
+const pool = document.getElementById('rotorPool');
+
+function checkDrop(x, y, draggedElement) {
+  draggedElement.style.display = 'none';
+  const dropTarget = document.elementFromPoint(x, y);
+  draggedElement.style.display = 'flex';
+
+  if (!dropTarget) return;
+
+  const targetSlot = dropTarget.closest('.rotor-slot');
+  const targetPool = dropTarget.closest('#rotorPool');
+
+  if (targetSlot) {
+    const existingRotor = targetSlot.querySelector('.rotor-element');
+    if (existingRotor && existingRotor !== draggedElement) {
+      pool.appendChild(existingRotor); 
+    }
+    targetSlot.appendChild(draggedElement);
+  } else if (targetPool) {
+    targetPool.appendChild(draggedElement);
+  }
+}
+
+rotors.forEach(rotor => {
+  let isDragging = false;
+
+  // --- 鼠标支持 ---
+  rotor.addEventListener('dragstart', (e) => {
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', rotor.dataset.rotor); 
+    setTimeout(() => rotor.classList.add('dragging'), 0);
+  });
+
+  rotor.addEventListener('dragend', (e) => {
+    rotor.classList.remove('dragging');
+  });
+
+  // --- 触摸屏支持 (高速跟手版) ---
+  rotor.addEventListener('touchstart', (e) => {
+    e.preventDefault(); 
+    isDragging = true;
+    rotor.classList.add('dragging');
+    
+    // 获取初始触摸点与元素边缘的相对偏移，防止元素瞬移
+    const rect = rotor.getBoundingClientRect();
+    const touch = e.touches[0];
+    const offsetX = touch.clientX - rect.left;
+    const offsetY = touch.clientY - rect.top;
+
+    // 关键：加上 transition: none，瞬间消除延迟
+    rotor.style.transition = 'none'; 
+    rotor.style.position = 'fixed';
+    rotor.style.zIndex = '9999';
+    rotor.style.width = '45px'; // 锁定宽度，防止固定定位后变形
+    rotor.style.height = '45px';
+    rotor.style.left = (touch.clientX - offsetX) + 'px';
+    rotor.style.top = (touch.clientY - offsetY) + 'px';
+  }, { passive: false });
+
+  rotor.addEventListener('touchmove', (e) => {
+    if (!isDragging) return;
+    e.preventDefault();
+    
+    const rect = rotor.getBoundingClientRect();
+    const touch = e.touches[0];
+    // 动态计算偏移
+    const offsetX = 22.5; // 45/2
+    const offsetY = 22.5;
+
+    rotor.style.left = (touch.clientX - offsetX) + 'px';
+    rotor.style.top = (touch.clientY - offsetY) + 'px';
+  }, { passive: false });
+
+  rotor.addEventListener('touchend', (e) => {
+    if (!isDragging) return;
+    isDragging = false;
+    rotor.classList.remove('dragging');
+    
+    rotor.style.transition = ''; // 恢复过渡
+    rotor.style.position = '';
+    rotor.style.zIndex = '';
+    rotor.style.left = '';
+    rotor.style.top = '';
+    rotor.style.width = '';
+    rotor.style.height = '';
+
+    const touch = e.changedTouches[0];
+    checkDrop(touch.clientX, touch.clientY, rotor);
+  });
+});
+
+// 鼠标释放的处理
+const dropZones = [...slots, pool];
+dropZones.forEach(zone => {
+  zone.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    if (zone.classList.contains('rotor-slot')) {
+      zone.classList.add('drag-over');
+    }
+  });
+
+  zone.addEventListener('dragleave', (e) => {
+    if (zone.classList.contains('rotor-slot')) {
+      zone.classList.remove('drag-over');
+    }
+  });
+
+  zone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    if (zone.classList.contains('rotor-slot')) {
+      zone.classList.remove('drag-over');
+    }
+    
+    const draggedRotor = document.querySelector('.dragging');
+    if (!draggedRotor) return;
+
+    if (zone.classList.contains('rotor-slot')) {
+      const existingRotor = zone.querySelector('.rotor-element');
+      if (existingRotor && existingRotor !== draggedRotor) {
+        pool.appendChild(existingRotor);
+      }
+      zone.appendChild(draggedRotor);
+    } else if (zone.id === 'rotorPool') {
+      pool.appendChild(draggedRotor);
+    }
+  });
+});
+
+/* =================================
+   ROTOR SETTING INPUTS
+================================= */
+const inputs = [
+  document.getElementById('rotorIn1'),
+  document.getElementById('rotorIn2'),
+  document.getElementById('rotorIn3')
+];
+
+inputs.forEach((input, index) => {
+  input.addEventListener('input', (e) => {
+    let val = e.target.value.toUpperCase().replace(/[^A-Z]/g, '');
+    if (val.length > 1) val = val.slice(-1);
+    e.target.value = val;
+
+    if (val && index < inputs.length - 1) {
+      inputs[index + 1].focus();
+    }
+  });
+
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Backspace') {
+      if (!e.target.value && index > 0) {
+        e.preventDefault(); 
+        inputs[index - 1].focus();
+        inputs[index - 1].value = ''; 
+      }
+    }
+  });
+
+  input.addEventListener('click', (e) => {
+    e.target.select();
+  });
+});
+
+/* =================================
+   INITIALIZATION
+================================= */
+createPlugboard();
+
+window.addEventListener("resize", () => {
+  requestAnimationFrame(drawConnections);
+});
